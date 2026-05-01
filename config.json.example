@@ -1,0 +1,11 @@
+{
+  "reachy_host": "localhost",
+  "reachy_port": 8000,
+  "reachy_name": "reachy",
+  "mqtt_broker": "tcp://localhost:1883",
+  "mqtt_client_id": "reachy-mqtt-bridge",
+  "mqtt_username": "",
+  "mqtt_password": "",
+  "rest_poll_interval": "5s",
+  "ws_reconnect_delay": "3s"
+}
