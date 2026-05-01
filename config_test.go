@@ -131,13 +131,40 @@ func TestLoadConfigEnvOverride(t *testing.T) {
 	}
 }
 
-func TestLoadConfigNoFile(t *testing.T) {
+func TestLoadConfigAutoDiscover(t *testing.T) {
+	// When run from a directory with config.json, it should auto-load it.
+	// When run from a directory without config.json, it should use defaults.
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+	os.WriteFile(cfgPath, []byte(`{"reachy_host":"auto-found"}`), 0644)
+
+	// Chdir to the temp dir so auto-discovery finds config.json
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
 	cfg, err := LoadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Should return defaults
+	if cfg.ReachyHost != "auto-found" {
+		t.Errorf("ReachyHost = %q, want auto-discovered %q", cfg.ReachyHost, "auto-found")
+	}
+}
+
+func TestLoadConfigNoFileDefaults(t *testing.T) {
+	// From a directory with no config.json, should return defaults
+	dir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	cfg, err := LoadConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if cfg.ReachyHost != "localhost" {
 		t.Errorf("ReachyHost = %q, want default %q", cfg.ReachyHost, "localhost")
 	}

@@ -188,3 +188,89 @@ func TestRESTClientHandleAPIRequestInvalid(t *testing.T) {
 		t.Error("expected error for invalid request JSON")
 	}
 }
+
+func TestIsRESTCommand(t *testing.T) {
+	restCmds := []string{
+		"play_emotion", "play_dance", "list_emotions", "list_dances",
+		"goto_move", "stop_move", "list_moves",
+		"daemon_start", "daemon_stop", "daemon_restart",
+		"camera_specs", "app_list", "app_start", "app_stop", "app_status",
+	}
+	for _, cmd := range restCmds {
+		if !IsRESTCommand(cmd) {
+			t.Errorf("IsRESTCommand(%q) = false, want true", cmd)
+		}
+	}
+
+	wsCmds := []string{
+		"set_target", "wake_up", "sleep", "set_volume", "play_sound",
+		"set_gravity_compensation", "set_automatic_body_yaw",
+		"set_mic_volume", "get_mic_volume",
+	}
+	for _, cmd := range wsCmds {
+		if IsRESTCommand(cmd) {
+			t.Errorf("IsRESTCommand(%q) = true, want false (should route to WS)", cmd)
+		}
+	}
+}
+
+func TestEmotionRequestParsing(t *testing.T) {
+	payload := `{"name":"Happy"}`
+	var req EmotionRequest
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.Name != "Happy" {
+		t.Errorf("Name = %q, want %q", req.Name, "Happy")
+	}
+}
+
+func TestDanceRequestParsing(t *testing.T) {
+	payload := `{"name":"Groovy Sway"}`
+	var req DanceRequest
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.Name != "Groovy Sway" {
+		t.Errorf("Name = %q, want %q", req.Name, "Groovy Sway")
+	}
+}
+
+func TestGotoMoveRequestParsing(t *testing.T) {
+	payload := `{"duration":0.5,"interpolation":"minjerk","antennas":[0.3,-0.3]}`
+	var req GotoMoveRequest
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.Duration != 0.5 {
+		t.Errorf("Duration = %v, want 0.5", req.Duration)
+	}
+	if req.Interpolation != "minjerk" {
+		t.Errorf("Interpolation = %q, want %q", req.Interpolation, "minjerk")
+	}
+	if len(req.Antennas) != 2 {
+		t.Errorf("Antennas length = %d, want 2", len(req.Antennas))
+	}
+}
+
+func TestNewWSCommandMappings(t *testing.T) {
+	tests := []struct {
+		cmd  string
+		want string
+	}{
+		{"set_gravity_compensation", "set_gravity_compensation"},
+		{"set_automatic_body_yaw", "set_automatic_body_yaw"},
+		{"append_record", "append_record"},
+		{"set_mic_volume", "set_microphone_volume"},
+		{"get_mic_volume", "get_microphone_volume"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.cmd, func(t *testing.T) {
+			got := WSTypeForCommand(tt.cmd)
+			if got != tt.want {
+				t.Errorf("WSTypeForCommand(%q) = %q, want %q", tt.cmd, got, tt.want)
+			}
+		})
+	}
+}

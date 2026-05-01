@@ -22,6 +22,8 @@ type Config struct {
 	MQTTPassword     string `json:"mqtt_password"`
 	RESTPollInterval string `json:"rest_poll_interval"`
 	WSReconnectDelay string `json:"ws_reconnect_delay"`
+	MaxPublishRate   string `json:"max_publish_rate"`
+	HeartbeatInterval string `json:"heartbeat_interval"`
 }
 
 func DefaultConfig() Config {
@@ -31,8 +33,10 @@ func DefaultConfig() Config {
 		ReachyName:       "reachy",
 		MQTTBroker:       "tcp://localhost:1883",
 		MQTTClientID:     "reachy-mqtt-bridge",
-		RESTPollInterval: "5s",
-		WSReconnectDelay: "3s",
+		RESTPollInterval:  "5s",
+		WSReconnectDelay:  "3s",
+		MaxPublishRate:    "100ms",
+		HeartbeatInterval: "5s",
 	}
 }
 
@@ -42,7 +46,14 @@ func LoadConfig(path string) (Config, error) {
 	// Load .env file if present (silently skip if missing)
 	_ = godotenv.Load()
 
-	// Load JSON config file if path provided
+	// If no explicit path, try config.json in the working directory
+	if path == "" {
+		if _, err := os.Stat("config.json"); err == nil {
+			path = "config.json"
+		}
+	}
+
+	// Load JSON config file
 	if path != "" {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -83,6 +94,12 @@ func LoadConfig(path string) (Config, error) {
 	if v := os.Getenv("WS_RECONNECT_DELAY"); v != "" {
 		cfg.WSReconnectDelay = v
 	}
+	if v := os.Getenv("MAX_PUBLISH_RATE"); v != "" {
+		cfg.MaxPublishRate = v
+	}
+	if v := os.Getenv("HEARTBEAT_INTERVAL"); v != "" {
+		cfg.HeartbeatInterval = v
+	}
 
 	return cfg, nil
 }
@@ -107,6 +124,22 @@ func (c Config) WSReconnectDuration() time.Duration {
 	d, err := time.ParseDuration(c.WSReconnectDelay)
 	if err != nil {
 		return 3 * time.Second
+	}
+	return d
+}
+
+func (c Config) MaxPublishInterval() time.Duration {
+	d, err := time.ParseDuration(c.MaxPublishRate)
+	if err != nil {
+		return 100 * time.Millisecond
+	}
+	return d
+}
+
+func (c Config) HeartbeatDuration() time.Duration {
+	d, err := time.ParseDuration(c.HeartbeatInterval)
+	if err != nil {
+		return 5 * time.Second
 	}
 	return d
 }

@@ -24,6 +24,7 @@ func main() {
 	log.Printf("  robot: %s at %s", cfg.ReachyName, cfg.WSURL())
 	log.Printf("  mqtt:  %s (client: %s)", cfg.MQTTBroker, cfg.MQTTClientID)
 	log.Printf("  rest:  polling %s every %v", cfg.APIURL(), cfg.RESTPollDuration())
+	log.Printf("  throttle: max %v, heartbeat %v", cfg.MaxPublishInterval(), cfg.HeartbeatDuration())
 
 	// Create context with signal-based cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -41,7 +42,7 @@ func main() {
 		log.Fatalf("mqtt init: %v", err)
 	}
 
-	router := NewRouter(ws, mqttBridge, rest)
+	router := NewRouter(ws, mqttBridge, rest, cfg.MaxPublishInterval(), cfg.HeartbeatDuration())
 
 	// Start WebSocket client (auto-reconnecting)
 	go ws.Run(ctx)

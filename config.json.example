@@ -7,5 +7,7 @@
   "mqtt_username": "",
   "mqtt_password": "",
   "rest_poll_interval": "5s",
-  "ws_reconnect_delay": "3s"
+  "ws_reconnect_delay": "3s",
+  "max_publish_rate": "100ms",
+  "heartbeat_interval": "5s"
 }
