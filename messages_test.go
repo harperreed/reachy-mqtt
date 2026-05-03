@@ -167,6 +167,7 @@ func TestWSTypeForCommand(t *testing.T) {
 		{"set_automatic_body_yaw", "set_automatic_body_yaw"},
 		{"set_mic_volume", "set_microphone_volume"},
 		{"get_mic_volume", "get_microphone_volume"},
+		{"get_motor_mode", "get_motor_mode"},
 		{"unknown_cmd", "unknown_cmd"}, // passthrough for unknown commands
 	}
 

@@ -140,6 +140,27 @@ func (r *RESTClient) pollAndPublish(ctx context.Context, mqttBridge *MQTTBridge)
 	} else {
 		log.Printf("[rest] poll app status error: %v", err)
 	}
+
+	// Poll speaker volume
+	if data, err := r.GetVolumeREST(ctx); err == nil {
+		mqttBridge.Publish("volume", data)
+	} else {
+		log.Printf("[rest] poll volume error: %v", err)
+	}
+
+	// Poll microphone volume
+	if data, err := r.GetMicVolumeREST(ctx); err == nil {
+		mqttBridge.Publish("mic_volume", data)
+	} else {
+		log.Printf("[rest] poll mic volume error: %v", err)
+	}
+
+	// Poll media status
+	if data, err := r.MediaStatus(ctx); err == nil {
+		mqttBridge.Publish("media_status", data)
+	} else {
+		log.Printf("[rest] poll media status error: %v", err)
+	}
 }
 
 // GetDoA fetches the Direction of Arrival from the microphone array.
@@ -336,6 +357,253 @@ func (r *RESTClient) StopApp(ctx context.Context) ([]byte, error) {
 	}
 	if status != http.StatusOK {
 		return nil, fmt.Errorf("POST /api/apps/stop-current-app returned %d", status)
+	}
+	return data, nil
+}
+
+// RestartApp restarts the currently running app.
+func (r *RESTClient) RestartApp(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodPost, "/api/apps/restart-current-app", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST /api/apps/restart-current-app returned %d", status)
+	}
+	return data, nil
+}
+
+// InstallApp installs an app from a HuggingFace space.
+func (r *RESTClient) InstallApp(ctx context.Context, spaceID string) ([]byte, error) {
+	body, _ := json.Marshal(map[string]string{"space_id": spaceID})
+	data, status, err := r.Do(ctx, http.MethodPost, "/api/apps/install", body)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST /api/apps/install returned %d", status)
+	}
+	return data, nil
+}
+
+// RemoveApp removes an installed app by name.
+func (r *RESTClient) RemoveApp(ctx context.Context, name string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/apps/remove/%s", name)
+	data, status, err := r.Do(ctx, http.MethodPost, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST %s returned %d", endpoint, status)
+	}
+	return data, nil
+}
+
+// CheckAppUpdates checks for available app updates.
+func (r *RESTClient) CheckAppUpdates(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/apps/check-updates", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/apps/check-updates returned %d", status)
+	}
+	return data, nil
+}
+
+// UpdateApp updates an app to its latest version.
+func (r *RESTClient) UpdateApp(ctx context.Context, name string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/apps/update/%s", name)
+	data, status, err := r.Do(ctx, http.MethodPost, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST %s returned %d", endpoint, status)
+	}
+	return data, nil
+}
+
+// GetAppJobStatus gets the status and logs of an install/update job.
+func (r *RESTClient) GetAppJobStatus(ctx context.Context, jobID string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/apps/job-status/%s", jobID)
+	data, status, err := r.Do(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET %s returned %d", endpoint, status)
+	}
+	return data, nil
+}
+
+// GetDaemonLockStatus checks the robot-app lock status.
+func (r *RESTClient) GetDaemonLockStatus(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/daemon/robot-app-lock-status", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/daemon/robot-app-lock-status returned %d", status)
+	}
+	return data, nil
+}
+
+// ListSounds lists available sound files on the robot.
+func (r *RESTClient) ListSounds(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/media/sounds", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/media/sounds returned %d", status)
+	}
+	return data, nil
+}
+
+// DeleteSound deletes a sound file from the robot.
+func (r *RESTClient) DeleteSound(ctx context.Context, filename string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/media/sounds/%s", filename)
+	data, status, err := r.Do(ctx, http.MethodDelete, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("DELETE %s returned %d", endpoint, status)
+	}
+	return data, nil
+}
+
+// StopSound stops the currently playing sound.
+func (r *RESTClient) StopSound(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodPost, "/api/media/stop_sound", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST /api/media/stop_sound returned %d", status)
+	}
+	return data, nil
+}
+
+// TestSound plays a test sound on the robot.
+func (r *RESTClient) TestSound(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodPost, "/api/volume/test-sound", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST /api/volume/test-sound returned %d", status)
+	}
+	return data, nil
+}
+
+// MediaRelease releases camera/audio hardware for external use.
+func (r *RESTClient) MediaRelease(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodPost, "/api/media/release", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST /api/media/release returned %d", status)
+	}
+	return data, nil
+}
+
+// MediaAcquire re-acquires camera/audio hardware.
+func (r *RESTClient) MediaAcquire(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodPost, "/api/media/acquire", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST /api/media/acquire returned %d", status)
+	}
+	return data, nil
+}
+
+// MediaStatus gets the current media backend status.
+func (r *RESTClient) MediaStatus(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/media/status", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/media/status returned %d", status)
+	}
+	return data, nil
+}
+
+// GetVolumeREST fetches the current speaker volume via REST.
+func (r *RESTClient) GetVolumeREST(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/volume/current", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/volume/current returned %d", status)
+	}
+	return data, nil
+}
+
+// GetMicVolumeREST fetches the current microphone volume via REST.
+func (r *RESTClient) GetMicVolumeREST(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/volume/microphone/current", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/volume/microphone/current returned %d", status)
+	}
+	return data, nil
+}
+
+// GetKinematicsInfo fetches kinematics information.
+func (r *RESTClient) GetKinematicsInfo(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/kinematics/info", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/kinematics/info returned %d", status)
+	}
+	return data, nil
+}
+
+// GetKinematicsURDF fetches the URDF model.
+func (r *RESTClient) GetKinematicsURDF(ctx context.Context) ([]byte, error) {
+	data, status, err := r.Do(ctx, http.MethodGet, "/api/kinematics/urdf", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET /api/kinematics/urdf returned %d", status)
+	}
+	return data, nil
+}
+
+// PlayDataset plays an arbitrary recorded-move dataset entry.
+func (r *RESTClient) PlayDataset(ctx context.Context, dataset, name string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/move/play/recorded-move-dataset/%s/%s", dataset, name)
+	data, status, err := r.Do(ctx, http.MethodPost, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("POST %s returned %d: %s", endpoint, status, string(data))
+	}
+	return data, nil
+}
+
+// ListDataset lists entries in an arbitrary recorded-move dataset.
+func (r *RESTClient) ListDataset(ctx context.Context, dataset string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/move/recorded-move-datasets/list/%s", dataset)
+	data, status, err := r.Do(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("GET %s returned %d", endpoint, status)
 	}
 	return data, nil
 }

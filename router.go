@@ -163,8 +163,103 @@ func (r *Router) handleRESTCommand(ctx context.Context, cmd MQTTCommand) {
 	case "app_stop":
 		data, err = r.rest.StopApp(ctx)
 
+	case "app_restart":
+		data, err = r.rest.RestartApp(ctx)
+
 	case "app_status":
 		data, err = r.rest.GetCurrentAppStatus(ctx)
+
+	case "app_install":
+		var req AppInstallRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.SpaceID == "" {
+			log.Printf("[router] app_install: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.InstallApp(ctx, req.SpaceID)
+
+	case "app_remove":
+		var req AppRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.Name == "" {
+			log.Printf("[router] app_remove: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.RemoveApp(ctx, req.Name)
+
+	case "app_check_updates":
+		data, err = r.rest.CheckAppUpdates(ctx)
+
+	case "app_update":
+		var req AppRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.Name == "" {
+			log.Printf("[router] app_update: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.UpdateApp(ctx, req.Name)
+
+	case "app_job_status":
+		var req AppJobStatusRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.JobID == "" {
+			log.Printf("[router] app_job_status: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.GetAppJobStatus(ctx, req.JobID)
+
+	case "daemon_lock_status":
+		data, err = r.rest.GetDaemonLockStatus(ctx)
+
+	case "list_sounds":
+		data, err = r.rest.ListSounds(ctx)
+
+	case "delete_sound":
+		var req SoundDeleteRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.Name == "" {
+			log.Printf("[router] delete_sound: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.DeleteSound(ctx, req.Name)
+
+	case "stop_sound":
+		data, err = r.rest.StopSound(ctx)
+
+	case "test_sound":
+		data, err = r.rest.TestSound(ctx)
+
+	case "media_release":
+		data, err = r.rest.MediaRelease(ctx)
+
+	case "media_acquire":
+		data, err = r.rest.MediaAcquire(ctx)
+
+	case "media_status":
+		data, err = r.rest.MediaStatus(ctx)
+
+	case "get_volume_rest":
+		data, err = r.rest.GetVolumeREST(ctx)
+
+	case "get_mic_volume_rest":
+		data, err = r.rest.GetMicVolumeREST(ctx)
+
+	case "kinematics_info":
+		data, err = r.rest.GetKinematicsInfo(ctx)
+
+	case "kinematics_urdf":
+		data, err = r.rest.GetKinematicsURDF(ctx)
+
+	case "play_dataset":
+		var req DatasetPlayRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.Dataset == "" || req.Name == "" {
+			log.Printf("[router] play_dataset: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.PlayDataset(ctx, req.Dataset, req.Name)
+
+	case "list_dataset":
+		var req DatasetPlayRequest
+		if err := json.Unmarshal(cmd.Payload, &req); err != nil || req.Dataset == "" {
+			log.Printf("[router] list_dataset: invalid payload: %v", err)
+			return
+		}
+		data, err = r.rest.ListDataset(ctx, req.Dataset)
 
 	default:
 		log.Printf("[router] unknown REST command: %s", cmd.CommandType)

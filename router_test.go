@@ -192,9 +192,16 @@ func TestRESTClientHandleAPIRequestInvalid(t *testing.T) {
 func TestIsRESTCommand(t *testing.T) {
 	restCmds := []string{
 		"play_emotion", "play_dance", "list_emotions", "list_dances",
+		"play_dataset", "list_dataset",
 		"goto_move", "stop_move", "list_moves",
-		"daemon_start", "daemon_stop", "daemon_restart",
-		"camera_specs", "app_list", "app_start", "app_stop", "app_status",
+		"daemon_start", "daemon_stop", "daemon_restart", "daemon_lock_status",
+		"list_sounds", "delete_sound", "stop_sound", "test_sound",
+		"media_release", "media_acquire", "media_status",
+		"camera_specs",
+		"get_volume_rest", "get_mic_volume_rest",
+		"app_list", "app_start", "app_stop", "app_restart", "app_status",
+		"app_install", "app_remove", "app_check_updates", "app_update", "app_job_status",
+		"kinematics_info", "kinematics_urdf",
 	}
 	for _, cmd := range restCmds {
 		if !IsRESTCommand(cmd) {
@@ -205,7 +212,7 @@ func TestIsRESTCommand(t *testing.T) {
 	wsCmds := []string{
 		"set_target", "wake_up", "sleep", "set_volume", "play_sound",
 		"set_gravity_compensation", "set_automatic_body_yaw",
-		"set_mic_volume", "get_mic_volume",
+		"set_mic_volume", "get_mic_volume", "get_motor_mode",
 	}
 	for _, cmd := range wsCmds {
 		if IsRESTCommand(cmd) {
@@ -263,6 +270,7 @@ func TestNewWSCommandMappings(t *testing.T) {
 		{"append_record", "append_record"},
 		{"set_mic_volume", "set_microphone_volume"},
 		{"get_mic_volume", "get_microphone_volume"},
+		{"get_motor_mode", "get_motor_mode"},
 	}
 
 	for _, tt := range tests {
@@ -272,5 +280,41 @@ func TestNewWSCommandMappings(t *testing.T) {
 				t.Errorf("WSTypeForCommand(%q) = %q, want %q", tt.cmd, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDatasetPlayRequestParsing(t *testing.T) {
+	payload := `{"dataset":"pollen-robotics/custom-dataset","name":"wave_hello"}`
+	var req DatasetPlayRequest
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.Dataset != "pollen-robotics/custom-dataset" {
+		t.Errorf("Dataset = %q, want %q", req.Dataset, "pollen-robotics/custom-dataset")
+	}
+	if req.Name != "wave_hello" {
+		t.Errorf("Name = %q, want %q", req.Name, "wave_hello")
+	}
+}
+
+func TestAppInstallRequestParsing(t *testing.T) {
+	payload := `{"space_id":"pollen-robotics/my-app"}`
+	var req AppInstallRequest
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.SpaceID != "pollen-robotics/my-app" {
+		t.Errorf("SpaceID = %q, want %q", req.SpaceID, "pollen-robotics/my-app")
+	}
+}
+
+func TestAppJobStatusRequestParsing(t *testing.T) {
+	payload := `{"job_id":"abc-123"}`
+	var req AppJobStatusRequest
+	if err := json.Unmarshal([]byte(payload), &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.JobID != "abc-123" {
+		t.Errorf("JobID = %q, want %q", req.JobID, "abc-123")
 	}
 }

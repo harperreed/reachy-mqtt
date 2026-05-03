@@ -65,28 +65,55 @@ var mqttCmdToWSType = map[string]string{
 	"append_record":             "append_record",
 	"set_mic_volume":            "set_microphone_volume",
 	"get_mic_volume":            "get_microphone_volume",
+	"get_motor_mode":            "get_motor_mode",
 }
 
 // restCommands are MQTT command topics that route through the REST API instead of WebSocket.
 var restCommands = map[string]bool{
-	"play_emotion":   true,
-	"play_dance":     true,
-	"list_emotions":  true,
-	"list_dances":    true,
-	"goto_move":      true,
-	"stop_move":      true,
-	"list_moves":     true,
-	"daemon_start":   true,
-	"daemon_stop":    true,
-	"daemon_restart": true,
+	// Emotions + dances (hardcoded Pollen datasets)
+	"play_emotion":  true,
+	"play_dance":    true,
+	"list_emotions": true,
+	"list_dances":   true,
+	// Arbitrary dataset playback
+	"play_dataset": true,
+	"list_dataset": true,
+	// Movement
+	"goto_move":  true,
+	"stop_move":  true,
+	"list_moves": true,
+	// Daemon lifecycle
+	"daemon_start":       true,
+	"daemon_stop":        true,
+	"daemon_restart":     true,
+	"daemon_lock_status": true,
+	// Sound / media
 	"list_sounds":    true,
-	"upload_sound":   true,
 	"delete_sound":   true,
-	"camera_specs":   true,
-	"app_list":       true,
-	"app_start":      true,
-	"app_stop":       true,
-	"app_status":     true,
+	"stop_sound":     true,
+	"test_sound":     true,
+	"media_release":  true,
+	"media_acquire":  true,
+	"media_status":   true,
+	// Camera
+	"camera_specs": true,
+	// Volume (REST variants)
+	"get_volume_rest":     true,
+	"get_mic_volume_rest": true,
+	// Apps
+	"app_list":          true,
+	"app_start":         true,
+	"app_stop":          true,
+	"app_restart":       true,
+	"app_status":        true,
+	"app_install":       true,
+	"app_remove":        true,
+	"app_check_updates": true,
+	"app_update":        true,
+	"app_job_status":    true,
+	// Kinematics
+	"kinematics_info": true,
+	"kinematics_urdf": true,
 }
 
 // IsRESTCommand returns true if the MQTT command should be routed through REST.
@@ -122,12 +149,6 @@ type GotoMoveRequest struct {
 	Interpolation string          `json:"interpolation,omitempty"`
 }
 
-// SoundUploadRequest is the payload for upload_sound commands.
-type SoundUploadRequest struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-}
-
 // AppRequest is the payload for app_start commands.
 type AppRequest struct {
 	Name string `json:"name"`
@@ -141,6 +162,22 @@ type MoveStopRequest struct {
 // SoundDeleteRequest is the payload for delete_sound commands.
 type SoundDeleteRequest struct {
 	Name string `json:"name"`
+}
+
+// DatasetPlayRequest is the payload for arbitrary dataset playback.
+type DatasetPlayRequest struct {
+	Dataset string `json:"dataset"`
+	Name    string `json:"name"`
+}
+
+// AppInstallRequest is the payload for app_install commands.
+type AppInstallRequest struct {
+	SpaceID string `json:"space_id"`
+}
+
+// AppJobStatusRequest is the payload for app_job_status commands.
+type AppJobStatusRequest struct {
+	JobID string `json:"job_id"`
 }
 
 // APIRequest is the JSON structure for MQTT API bridge requests.
